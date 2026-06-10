@@ -207,6 +207,7 @@ def read_csv():
 	ser = serial.Serial(UART_PORT, BAUDRATE, timeout=1, exclusive=True)
 	ser.reset_input_buffer()
 	buffer = bytearray()
+    last_char_time = None
 	try:
 		while True:
 			if(last_char_time is not None and time.time() - last_char_time > 5):
