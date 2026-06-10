@@ -43,7 +43,7 @@ left_examined = True
 right_examined = True
 name_of_doctor = "Angela Nahl, MD"
 url = "https://calc.apacrs.org/toric_calculator20/Toric%20Calculator.aspx"
-UART_PORT = "/dev/ttyS0"
+UART_PORT = "/dev/ttyAMA0"
 BAUDRATE = 115200
 sleep_interval = .05
 def main(left):

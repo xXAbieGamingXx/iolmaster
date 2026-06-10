@@ -6,8 +6,8 @@ After=network-online.target
 [Service]
 Type=simple
 User=macch
-WorkingDirectory=/home/macch/iolmaster/
-ExecStart=/home/macch/iolmaster/venv/bin/python -u /home/macch/iolmaster/startup.py
+WorkingDirectory=$HOME/iolmaster/
+ExecStart=$HOME/iolmaster/venv/bin/python -u $HOME/iolmaster/startup.py
 
 [Install]
 WantedBy=multi-user.target
