@@ -1,0 +1,12 @@
+[Unit]
+Description=iol
+After=network.target
+
+[Service]
+Type=simple
+User=macch
+WorkingDirectory=/home/macch/iolmaster/
+ExecStart=/home/macch/iolmaster/venv/bin/python -u /home/macch/iolmaster/startup.py
+
+[Install]
+WantedBy=multi-user.target

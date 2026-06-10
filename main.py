@@ -1,5 +1,3 @@
-# remember to uncomment print later
-# try adding the wait back in
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
@@ -24,16 +22,12 @@ left_incision = [0,0]
 left_refraction = 1
 right_refraction = 1
 results = "level1 static" 
-# driver.find_element(By.XPATH, "(//input[@class="+results+"])[3]")
-# rest are ids
-calculate = "MainContent_Button1" 
 right_eye = "MainContent_Rad1" 
 left_eye = "MainContent_Rad2"
 doctor_name = "MainContent_DoctorName"
 patient_name = "MainContent_PatientName" 
-#add either lens factor or a constant
 flat_k = "MainContent_MeasuredK"
-flat_axis = "MainContent_MeasuredAxis" # this is what is measured
+flat_axis = "MainContent_MeasuredAxis"
 steep_k = "MainContent_MeasuredK0"
 steep_axis = "MainContent_MeasuredAxis0"
 axial_length = "MainContent_AxLength"
@@ -47,205 +41,206 @@ a_constant = "MainContent_Aconstant"
 iol_constant = 119.1
 left_examined = True
 right_examined = True
+name_of_doctor = "Angela Nahl, MD"
+url = "https://calc.apacrs.org/toric_calculator20/Toric%20Calculator.aspx"
 UART_PORT = "/dev/ttyS0"
 BAUDRATE = 115200
 sleep_interval = .05
 def main(left):
-    options = Options()
-    options.add_argument("--no-sandbox")
-    options.add_argument("--disable-dev-shm-usage")
-    service = Service("/usr/bin/chromedriver")
-    driver = webdriver.Chrome(service=service, options=options)
-    driver.get("https://calc.apacrs.org/toric_calculator20/Toric%20Calculator.aspx")
-    driver.set_window_size(1300, 1000)
-    driver.set_window_position(0,0)
-    time.sleep(10)
-    paste_data(driver, left)
-    time.sleep(3)
-    driver.quit()
+	options = Options()
+	options.add_argument("--no-sandbox")
+	options.add_argument("--disable-dev-shm-usage")
+	service = Service("/usr/bin/chromedriver")
+	driver = webdriver.Chrome(service=service, options=options)
+	driver.get(url)
+	driver.set_window_size(1300, 1000)
+	driver.set_window_position(0,0)
+	time.sleep(10)
+	paste_data(driver, left)
+	time.sleep(3)
+	driver.quit()
 
 def paste_data(driver, left):
-    constants = []
-    if(left):
-        left = driver.find_element(By.ID, left_eye)
-        left.click()
-        refraction_box = driver.find_element(By.ID, refraction)
-        refraction_box.send_keys(str(left_refraction))
-        sia = driver.find_element(By.ID, incision_sia)
-        sia.send_keys(str(left_incision[0]))
-        location = driver.find_element(By.ID, incision_location)
-        location.send_keys(str(left_incision[1]))
-        constants = left_constants
-    else:
-        right = driver.find_element(By.ID, right_eye)
-        right.click()
-        refraction_box = driver.find_element(By.ID, refraction)
-        refraction_box.send_keys(str(right_refraction))
-        sia = driver.find_element(By.ID, incision_sia)
-        sia.send_keys(str(right_incision[0]))
-        location = driver.find_element(By.ID, incision_location)
-        location.send_keys(str(right_incision[1]))
-        constants = right_constants
-    constant = driver.find_element(By.ID, a_constant)
-    constant.send_keys(str(iol_constant))
-    doctor = driver.find_element(By.ID, doctor_name)
-    doctor.send_keys("Angela Nahl, MD")
-    patient = driver.find_element(By.ID, patient_name)
-    patient.send_keys(constants[0])
-    k1 = driver.find_element(By.ID, flat_k)
-    k1.send_keys(str(constants[1]))
-    ax1 = driver.find_element(By.ID, flat_axis)
-    ax1.send_keys(str(constants[2]))
-    k2 = driver.find_element(By.ID, steep_k)
-    k2.send_keys(str(constants[3]))
-    ax2 = driver.find_element(By.ID, steep_axis)
-    ax2.send_keys(str(constants[4]))
-    al = driver.find_element(By.ID, axial_length)
-    al.send_keys(str(constants[5]))
-    acd = driver.find_element(By.ID, optical_acd)
-    acd.send_keys(str(constants[6]))
-    wtw_box = driver.find_element(By.ID, wtw)
-    wtw_box.send_keys(str(constants[7]))
-    time.sleep(3)
-    calculate_box = driver.find_element(By.ID, calculate)
-    calculate_box.click()
-    time.sleep(3)
-    results_box = driver.find_element(By.XPATH, "(//a[contains(@class, 'level1') and contains(@class, 'static')])[3]")
-    results_box.click()
-    time.sleep(8)
-    with mss.mss() as sct:
-        monitor = {"top":230, "left":215, "width":870, "height":580}
-        screenshot = sct.grab(monitor)
-        output = ""
-        if(left):
-            output = "left.pdf"
-        else:
-            output = "right.pdf"
-        img = Image.frombytes("RGB", screenshot.size, screenshot.bgra, "raw", "BGRX")
-        img.save(output, "PDF")
-    
-def get_data(): # ADD CHECKS FOR IF LEFT AND RIGHT EYE WERE EXAMINED
-    with open("export.csv", "r") as file:
-        reader = csv.reader(file, delimiter=";")
-        for row in reader:
-            if(row[0] == "Last Name"):
-                pass
-            else:
-                if(row[30] == ""):
-                    global left_examined
-                    left_examined = False
-                if(row[27] == ""):
-                    global right_examined
-                    right_examined = False
-                left_constants.append(row[1] + " " + row[0])
-                right_constants.append(row[1] + " " + row[0])
-                for i in range(2):
-                    if(i == 0 and left_examined or i == 1 and right_examined):
-                        k1 = []
-                        k1.append(row[16-i*9])
-                        k1.append(row[19-i*9])
-                        k1.append(row[22-i*9])
-                        make_floats(k1)
-                        axis = []
-                        axis.append(row[18-1*9])
-                        axis.append(row[21-1*9])
-                        axis.append(row[24-1*9])
-                        make_floats(axis)
-                        if(i == 0):
-                            left_constants.append(sum(k1)/len(k1))
-                            left_constants.append(sum(axis)/len(axis))
-                        else:
-                            right_constants.append(sum(k1)/len(k1))
-                            right_constants.append(sum(axis)/len(axis))
-                for i in range(2):
-                    if(i == 0 and left_examined or i == 1 and right_examined):
-                        k2 = []
-                        k2.append(row[17-i*9])
-                        k2.append(row[20-i*9])
-                        k2.append(row[23-i*9])
-                        make_floats(k2)
-                        if(i == 0):
-                            left_constants.append(sum(k2)/len(k2))
-                            if(left_constants[2] <= 90):
-                                left_constants.append(left_constants[2]+90)
-                            else:
-                                left_constants.append(left_constants[2]-90)
-                        else:
-                            right_constants.append(sum(k2)/len(k2))
-                            if(left_constants[2] <= 90):
-                                right_constants.append(right_constants[2]+90)
-                            else:
-                                right_constants.append(right_constants[2]-90)
-                if(left_examined):
-                    left_constants.append(float(row[6]))
-                    left_constants.append(float(row[26]))
-                    wtw = []
-                    wtw.append(row[30])
-                    wtw.append(row[31])
-                    wtw.append(row[32])
-                    make_floats(wtw)
-                    left_constants.append(sum(wtw)/len(wtw))                            
-                    
-                if(right_examined):
-                    right_constants.append(float(row[5]))
-                    right_constants.append(float(row[25]))
-                    wtw = []
-                    wtw.append(row[27])
-                    wtw.append(row[28])
-                    wtw.append(row[29])
-                    make_floats(wtw)
-                    right_constants.append(sum(wtw)/len(wtw))                            
+	constants = []
+	if(left):
+		left = driver.find_element(By.ID, left_eye)
+		left.click()
+		refraction_box = driver.find_element(By.ID, refraction)
+		refraction_box.send_keys(str(left_refraction))
+		sia = driver.find_element(By.ID, incision_sia)
+		sia.send_keys(str(left_incision[0]))
+		location = driver.find_element(By.ID, incision_location)
+		location.send_keys(str(left_incision[1]))
+		constants = left_constants
+	else:
+		right = driver.find_element(By.ID, right_eye)
+		right.click()
+		refraction_box = driver.find_element(By.ID, refraction)
+		refraction_box.send_keys(str(right_refraction))
+		sia = driver.find_element(By.ID, incision_sia)
+		sia.send_keys(str(right_incision[0]))
+		location = driver.find_element(By.ID, incision_location)
+		location.send_keys(str(right_incision[1]))
+		constants = right_constants
+	constant = driver.find_element(By.ID, a_constant)
+	constant.send_keys(str(iol_constant))
+	doctor = driver.find_element(By.ID, doctor_name)
+	doctor.send_keys(name_of_doctor)
+	patient = driver.find_element(By.ID, patient_name)
+	patient.send_keys(constants[0])
+	k1 = driver.find_element(By.ID, flat_k)
+	k1.send_keys(str(constants[1]))
+	ax1 = driver.find_element(By.ID, flat_axis)
+	ax1.send_keys(str(constants[2]))
+	k2 = driver.find_element(By.ID, steep_k)
+	k2.send_keys(str(constants[3]))
+	ax2 = driver.find_element(By.ID, steep_axis)
+	ax2.send_keys(str(constants[4]))
+	al = driver.find_element(By.ID, axial_length)
+	al.send_keys(str(constants[5]))
+	acd = driver.find_element(By.ID, optical_acd)
+	acd.send_keys(str(constants[6]))
+	wtw_box = driver.find_element(By.ID, wtw)
+	wtw_box.send_keys(str(constants[7]))
+	time.sleep(3)
+	calculate_box = driver.find_element(By.ID, calculate)
+	calculate_box.click()
+	time.sleep(3)
+	results_box = driver.find_element(By.XPATH, "(//a[contains(@class, 'level1') and contains(@class, 'static')])[3]")
+	results_box.click()
+	time.sleep(8)
+	with mss.MSS() as sct:
+		monitor = {"top":230, "left":215, "width":870, "height":580}
+		screenshot = sct.grab(monitor)
+		output = ""
+		if(left):
+			output = "left.pdf"
+		else:
+			output = "right.pdf"
+		img = Image.frombytes("RGB", screenshot.size, screenshot.bgra, "raw", "BGRX")
+		img.save(output, "PDF")
+	
+def get_data():
+	with open("export.csv", "r") as file:
+		reader = csv.reader(file, delimiter=";")
+		first_row = True
+		for row in reader:
+			if first_row:
+				first_row = False
+			else:
+				if(row[30] == ""):
+					global left_examined
+					left_examined = False
+				if(row[27] == ""):
+					global right_examined
+					right_examined = False
+				left_constants.append(row[1] + " " + row[0])
+				right_constants.append(row[1] + " " + row[0])
+				for i in range(2):
+					if(i == 0 and left_examined or i == 1 and right_examined):
+						k1 = []
+						k1.append(row[16-i*9])
+						k1.append(row[19-i*9])
+						k1.append(row[22-i*9])
+						make_floats(k1)
+						axis = []
+						axis.append(row[18-1*9])
+						axis.append(row[21-1*9])
+						axis.append(row[24-1*9])
+						make_floats(axis)
+						if(i == 0):
+							left_constants.append(sum(k1)/len(k1))
+							left_constants.append(sum(axis)/len(axis))
+						else:
+							right_constants.append(sum(k1)/len(k1))
+							right_constants.append(sum(axis)/len(axis))
+				for i in range(2):
+					if(i == 0 and left_examined or i == 1 and right_examined):
+						k2 = []
+						k2.append(row[17-i*9])
+						k2.append(row[20-i*9])
+						k2.append(row[23-i*9])
+						make_floats(k2)
+						if(i == 0):
+							left_constants.append(sum(k2)/len(k2))
+							if(left_constants[2] <= 90):
+								left_constants.append(left_constants[2]+90)
+							else:
+								left_constants.append(left_constants[2]-90)
+						else:
+							right_constants.append(sum(k2)/len(k2))
+							if(left_constants[2] <= 90):
+								right_constants.append(right_constants[2]+90)
+							else:
+								right_constants.append(right_constants[2]-90)
+				if(left_examined):
+					left_constants.append(float(row[6]))
+					left_constants.append(float(row[26]))
+					wtw = []
+					wtw.append(row[30])
+					wtw.append(row[31])
+					wtw.append(row[32])
+					make_floats(wtw)
+					left_constants.append(sum(wtw)/len(wtw))							
+					
+				if(right_examined):
+					right_constants.append(float(row[5]))
+					right_constants.append(float(row[25]))
+					wtw = []
+					wtw.append(row[27])
+					wtw.append(row[28])
+					wtw.append(row[29])
+					make_floats(wtw)
+					right_constants.append(sum(wtw)/len(wtw))							
+
+printer_name = "Brother_HL-L2350DW_series_Printer"
+
 def print_data():
-    left_path = "left.pdf"
-    right_path = "right.pdf"
-    if(left_examined): # change default to different printer
-        subprocess.run(["lp", left_path])
-    if(right_examined):
-        subprocess.run(["lp", right_path])
+	left_path = "left.pdf"
+	right_path = "right.pdf"
+	if(left_examined): # change default to different printer
+		subprocess.run(["lp -p", printer_name, left_path])
+	if(right_examined):
+		subprocess.run(["lp -p", printer_name, right_path])
 
 def read_csv():
-    ser = serial.Serial(UART_PORT, BAUDRATE, timeout=1)
-    buffer = []
-    try:
-        while True:
-            if(ser.in_waiting):
-                line = ser.readline().decode("utf-8", errors="ignore").strip()
-                if line == "---END CSV---":
-                    csv_text = "\n".join(buffer)
-                    print(csv_text)
-                    with open("results.csv", "w") as file:
-                        writer = csv.writer(file, delimiter=";")
-                        writer.writerows(csv_text)
-                    ser.close()
-                    return
-                elif line:
-                    csv_lines.append(line)
-            else:
-                pass
-                #time.sleep(sleep_interval)
-    except KeyboardInterrupt:
-        ser.close()
+	ser = serial.Serial(UART_PORT, BAUDRATE, timeout=1, exclusive=True)
+		ser.reset_input_buffer()
+	buffer = bytearray()
+	try:
+		while True:
+			if(last_char_time is not None and time.time() - last_char_time > 5):
+				break
+			chunk = ser.read(256)
+			if(chunk):
+				buffer += chunk
+				last_char_time = time.time()
+	finally:
+		ser.close()
+	text = buffer.decode("utf-8", errors="ignore")
+	with open("export.csv", "w") as file:
+		file.write(text)
+
 def reset_data():
-    global left_constants
-    global right_constants
-    global left_examined
-    global right_examined
-    left_constants = []
-    right_constants = []
-    left_examined = False
-    right_examined = False
+	global left_constants
+	global right_constants
+	global left_examined
+	global right_examined
+	left_constants = []
+	right_constants = []
+	left_examined = False
+	right_examined = False
 
 def make_floats(strings):
-    for i in range(len(strings)):
-        strings[i] = float(strings[i])
+	for i in range(len(strings)):
+		strings[i] = float(strings[i])
 
 if(__name__ == "__main__"):
-    read_csv()
-    """
-    get_data()
-    if(left_examined):
-        main(True)
-    if(right_examined):
-        main(False)
-    #print_data()
-    """
+	read_csv()
+	get_data()
+	if(left_examined):
+		main(True)
+	if(right_examined):
+		main(False)
+	print_data()
+	subprocess.run(["sudo", "reboot"])
