@@ -205,7 +205,7 @@ def print_data():
 
 def read_csv():
 	ser = serial.Serial(UART_PORT, BAUDRATE, timeout=1, exclusive=True)
-		ser.reset_input_buffer()
+	ser.reset_input_buffer()
 	buffer = bytearray()
 	try:
 		while True:
