@@ -6,11 +6,11 @@ from selenium.webdriver.common.keys import Keys
 from itertools import chain
 from PIL import Image
 import io
-import pyscreenshot
 import time
 import serial
 import subprocess
 import csv
+import os
 # test for being equal to the boundries
 # KER is corneal radius
 # OD = right OS = left
@@ -123,7 +123,6 @@ def paste_data(driver, left):
 	box = tuple(int(v * dpr) for v in (x1, y1 - chrome_top, x2, y2 - chrome_top))
 	image.crop(box).save(output)
 
-
 def get_data():
 	with open("export.csv", "r") as file:
 		reader = csv.reader(file, delimiter=";")
@@ -198,15 +197,25 @@ def get_data():
 					make_floats(wtw)
 					right_constants.append(sum(wtw)/len(wtw))							
 
-printer_name = "Brother_HL_L2350DW_series"
+def get_printer_name():
+	"""Return the queue name written by setup.sh, or None to use the CUPS default."""
+	path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "printer.conf")
+	try:
+		with open(path) as f:
+			return f.read().strip() or None
+	except OSError:
+		return None
 
 def print_data():
-	left_path = "left.png"
-	right_path = "right.png"
-	if(left_examined): # change default to different printer
-		subprocess.run(["lp -p", printer_name, left_path])
-	if(right_examined):
-		subprocess.run(["lp -p", printer_name, right_path])
+	printer = get_printer_name()
+	for examined, file_name in ((left_examined, "left.png"), (right_examined, "right.png")):
+		if(not examined):
+			continue
+		cmd = ["lp"]
+		if(printer):
+			cmd += ["-d", printer]
+		cmd.append(file_name)
+		subprocess.run(cmd)
 
 def read_csv():
 	ser = serial.Serial(UART_PORT, BAUDRATE, timeout=1, exclusive=True)
@@ -244,7 +253,7 @@ def make_floats(strings):
 		strings[i] = float(strings[i])
 
 if(__name__ == "__main__"):
-	print("entered main")
+	# while True:
 	read_csv()
 	get_data()
 	if(left_examined):
@@ -252,6 +261,5 @@ if(__name__ == "__main__"):
 	if(right_examined):
 		main(False)
 	# print_data()
-	# subprocess.run(["sudo rm -rf ~/iolmaster/left.png"])
-	# subprocess.run(["sudo rm -rf ~/iolmaster/right.png"])
-	time.sleep(5) # let the rms finish
+	# subprocess.run(["rm", "-f", "left.png", "right.png"])
+	time.sleep(5) # let the prints finish

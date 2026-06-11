@@ -15,7 +15,7 @@ REPO = "xXAbieGamingXx/iolmaster"
 BRANCH = "master"
 COMMIT_API = "https://api.github.com/repos/{}/commits/{}".format(REPO, BRANCH)
 RAW_BASE = "https://raw.githubusercontent.com/{}/{}".format(REPO, BRANCH)
-UPDATE_FILES = ["main.py", "startup.py"]
+UPDATE_FILES = ["main.py", "startup.py", "provision_printer.sh"]
 
 SERIAL_PORT = "/dev/serial0"
 BAUDRATE = 115200
@@ -23,6 +23,10 @@ BAUDRATE = 115200
 HERE = os.path.dirname(os.path.abspath(__file__))
 HASH_FILE = os.path.join(HERE, ".commit_hash")
 REBOOT_DELAY = 5  # seconds after main.py finishes
+
+PRINTER_CONF = os.path.join(HERE, "printer.conf")
+PROVISION_SCRIPT = os.path.join(HERE, "provision_printer.sh")
+PROVISION_TIMEOUT = 180  # seconds; printer discovery polls for up to ~60s
 
 # RP2350 (e.g. Pico 2 in BOOTSEL mode) mounts as a USB mass-storage volume.
 RP_DRIVE_LABEL = "RP2350"
@@ -101,6 +105,25 @@ def check_and_update():
 	print("update complete")
 
 
+def ensure_printer():
+	"""If the printer hasn't been provisioned yet, try to set it up now.
+
+	Only runs while printer.conf is absent, so once provisioning succeeds it
+	is a no-op. A run that can't reach the printer leaves no config and is
+	retried on the next boot.
+	"""
+	if os.path.exists(PRINTER_CONF):
+		return
+	if not os.path.exists(PROVISION_SCRIPT):
+		print("printer not configured and {} is missing".format(PROVISION_SCRIPT))
+		return
+	print("printer.conf missing; provisioning printer")
+	try:
+		subprocess.run(["bash", PROVISION_SCRIPT], timeout=PROVISION_TIMEOUT)
+	except Exception as exc:
+		print("printer provisioning failed: {}".format(exc))
+
+
 def run_main():
 	"""Run main.py with the same interpreter and wait for it to finish."""
 	main_path = os.path.join(HERE, "main.py")
@@ -134,5 +157,6 @@ def schedule_midnight_reboot():
 
 if __name__ == "__main__":
 	check_and_update()
+	ensure_printer()
 	schedule_midnight_reboot()
 	run_main()
