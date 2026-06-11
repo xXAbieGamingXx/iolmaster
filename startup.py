@@ -166,19 +166,10 @@ def run_main():
 	"""Run main.py with the same interpreter and wait for it to finish."""
 	main_path = os.path.join(HERE, "main.py")
 	try:
-<<<<<<< HEAD
 		result = subprocess.run([sys.executable, main_path], capture_output=True, text=True)
-        print(result.stdout)
-=======
-		result = subprocess.run([sys.executable, main_path], capture_output = True, text = True)
 		print(result.stdout)
->>>>>>> de966abb887f68673100b770febd6bf538d153d3
 	except Exception as exc:
 		print("running main.py failed: {}".format(exc))
-
-def reboot():
-	time.sleep(REBOOT_DELAY)
-	subprocess.run(["sudo", "reboot"])
 
 
 def seconds_until_midnight():
@@ -203,13 +194,6 @@ def schedule_midnight_reboot():
 
 
 if __name__ == "__main__":
-<<<<<<< HEAD
-    check_and_update()
-    schedule_midnight_reboot()
-    run_main()
-    reboot()
-=======
 	check_and_update()
+	schedule_midnight_reboot()
 	run_main()
-	# reboot()
->>>>>>> de966abb887f68673100b770febd6bf538d153d3

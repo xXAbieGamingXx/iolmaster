@@ -238,4 +238,3 @@ if(__name__ == "__main__"):
 	if(right_examined):
 		main(False)
 	# print_data()
-	# subprocess.run(["sudo", "reboot"])
