@@ -5,9 +5,13 @@ After=network-online.target
 
 [Service]
 Type=simple
-User=macch
-WorkingDirectory=$HOME/iolmaster/
-ExecStart=$HOME/iolmaster/venv/bin/python -u $HOME/iolmaster/startup.py
+User=pi
+WorkingDirectory=/home/pi/iolmaster/
+Environment=DISPLAY=:0
+Environment=XAUTHORITY=/home/pi/.Xauthority
+Environment=WAYLAND_DISPLAY=wayland-0                                                                                                     
+Environment=XDG_RUNTIME_DIR=/run/user/1000 
+ExecStart=/home/pi/iolmaster/venv/bin/python -u /home/pi/iolmaster/startup.py
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=graphical.target

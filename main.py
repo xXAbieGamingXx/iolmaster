@@ -22,6 +22,7 @@ left_incision = [0,0]
 left_refraction = 1
 right_refraction = 1
 results = "level1 static" 
+calculate = "MainContent_Button1"
 right_eye = "MainContent_Rad1" 
 left_eye = "MainContent_Rad2"
 doctor_name = "MainContent_DoctorName"

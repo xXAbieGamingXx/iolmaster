@@ -1,8 +1,10 @@
+import datetime
 import json
 import os
 import shutil
 import subprocess
 import sys
+import threading
 import time
 import urllib.request
 
@@ -164,17 +166,39 @@ def run_main():
 	"""Run main.py with the same interpreter and wait for it to finish."""
 	main_path = os.path.join(HERE, "main.py")
 	try:
-		subprocess.run([sys.executable, main_path])
+		result = subprocess.run([sys.executable, main_path], capture_output=True, text=True)
+        print(result.stdout)
 	except Exception as exc:
 		print("running main.py failed: {}".format(exc))
-
 
 def reboot():
 	time.sleep(REBOOT_DELAY)
 	subprocess.run(["sudo", "reboot"])
 
 
+def seconds_until_midnight():
+	"""Seconds from now until the next local midnight."""
+	now = datetime.datetime.now()
+	next_midnight = datetime.datetime.combine(
+		now.date() + datetime.timedelta(days=1), datetime.time.min
+	)
+	return (next_midnight - now).total_seconds()
+
+
+def schedule_midnight_reboot():
+	"""Reboot at every local midnight, from a background daemon thread."""
+
+	def _wait_and_reboot():
+		while True:
+			time.sleep(seconds_until_midnight())
+			print("midnight reached, rebooting")
+			subprocess.run(["sudo", "reboot"])
+
+	threading.Thread(target=_wait_and_reboot, daemon=True).start()
+
+
 if __name__ == "__main__":
     check_and_update()
+    schedule_midnight_reboot()
     run_main()
     reboot()

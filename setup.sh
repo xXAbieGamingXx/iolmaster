@@ -5,9 +5,11 @@ sudo systemctl daemon-reload
 sudo systemctl enable iol.service
 sudo raspi-config nonint do_serial_hw 0 # 0 is on 1 is off
 sudo raspi-config nonint do_serial_cons 1
+sudo raspi-config nonint do_sudo_pass 1
+sudo raspi-config nonint do_vnc 0
 python -m venv venv
 source venv/bin/activate
-pip install selenium pillow mss pyserial
+pip install selenium pyserial pyscreenshot
 echo "dtoverlay=disable-bt" | sudo tee -a /boot/firmware/config.txt
 
 sudo reboot
