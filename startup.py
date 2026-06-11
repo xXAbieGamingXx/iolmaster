@@ -164,10 +164,10 @@ def run_main():
 	"""Run main.py with the same interpreter and wait for it to finish."""
 	main_path = os.path.join(HERE, "main.py")
 	try:
-		subprocess.run([sys.executable, main_path])
+		result = subprocess.run([sys.executable, main_path], capture_output = True, text = True)
+		print(result.stdout)
 	except Exception as exc:
 		print("running main.py failed: {}".format(exc))
-
 
 def reboot():
 	time.sleep(REBOOT_DELAY)
@@ -175,6 +175,6 @@ def reboot():
 
 
 if __name__ == "__main__":
-    check_and_update()
-    run_main()
-    reboot()
+	check_and_update()
+	run_main()
+	# reboot()
