@@ -4,6 +4,8 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from itertools import chain
+from PIL import Image
+import io
 import pyscreenshot
 import time
 import serial
@@ -42,7 +44,7 @@ left_examined = True
 right_examined = True
 name_of_doctor = "Angela Nahl, MD"
 url = "https://calc.apacrs.org/toric_calculator20/Toric%20Calculator.aspx"
-screenshot_coords = () # x, y, x, y
+screenshot_coords = (215, 265, 1080, 820) # x, y, x, y
 UART_PORT = "/dev/ttyAMA0"
 BAUDRATE = 115200
 sleep_interval = .05
@@ -54,7 +56,7 @@ def main(left):
 	driver = webdriver.Chrome(service=service, options=options)
 	driver.get(url)
 	driver.set_window_size(1300, 1000)
-	driver.set_window_position(0,1900)
+	driver.set_window_position(0,0)
 	time.sleep(10)
 	paste_data(driver, left)
 	time.sleep(3)
@@ -109,7 +111,19 @@ def paste_data(driver, left):
 	results_box = driver.find_element(By.XPATH, "(//a[contains(@class, 'level1') and contains(@class, 'static')])[3]")
 	results_box.click()
 	time.sleep(8)
-	
+	if(left):
+		output = "left.png"
+	else:
+		output = "right.png"
+	png = driver.get_screenshot_as_png()
+	image = Image.open(io.BytesIO(png))
+	chrome_top = driver.execute_script("return window.outerHeight - window.innerHeight;")
+	dpr = driver.execute_script("return window.devicePixelRatio || 1;")
+	x1, y1, x2, y2 = screenshot_coords
+	box = tuple(int(v * dpr) for v in (x1, y1 - chrome_top, x2, y2 - chrome_top))
+	image.crop(box).save(output)
+
+
 def get_data():
 	with open("export.csv", "r") as file:
 		reader = csv.reader(file, delimiter=";")
@@ -184,11 +198,11 @@ def get_data():
 					make_floats(wtw)
 					right_constants.append(sum(wtw)/len(wtw))							
 
-printer_name = "Brother_HL-L2350DW_series_Printer"
+printer_name = "Brother_HL_L2350DW_series"
 
 def print_data():
-	left_path = "left.pdf"
-	right_path = "right.pdf"
+	left_path = "left.png"
+	right_path = "right.png"
 	if(left_examined): # change default to different printer
 		subprocess.run(["lp -p", printer_name, left_path])
 	if(right_examined):
@@ -238,3 +252,6 @@ if(__name__ == "__main__"):
 	if(right_examined):
 		main(False)
 	# print_data()
+	# subprocess.run(["sudo rm -rf ~/iolmaster/left.png"])
+	# subprocess.run(["sudo rm -rf ~/iolmaster/right.png"])
+	time.sleep(5) # let the rms finish
