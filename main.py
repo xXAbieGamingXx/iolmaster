@@ -4,13 +4,11 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from itertools import chain
-from PIL import Image
+import pyscreenshot
 import time
 import serial
 import subprocess
 import csv
-import mss
-import mss.tools
 # test for being equal to the boundries
 # KER is corneal radius
 # OD = right OS = left
@@ -44,6 +42,7 @@ left_examined = True
 right_examined = True
 name_of_doctor = "Angela Nahl, MD"
 url = "https://calc.apacrs.org/toric_calculator20/Toric%20Calculator.aspx"
+screenshot_coords = () # x, y, x, y
 UART_PORT = "/dev/ttyAMA0"
 BAUDRATE = 115200
 sleep_interval = .05
@@ -55,7 +54,7 @@ def main(left):
 	driver = webdriver.Chrome(service=service, options=options)
 	driver.get(url)
 	driver.set_window_size(1300, 1000)
-	driver.set_window_position(0,0)
+	driver.set_window_position(0,1900)
 	time.sleep(10)
 	paste_data(driver, left)
 	time.sleep(3)
@@ -110,22 +109,13 @@ def paste_data(driver, left):
 	results_box = driver.find_element(By.XPATH, "(//a[contains(@class, 'level1') and contains(@class, 'static')])[3]")
 	results_box.click()
 	time.sleep(8)
-	with mss.MSS() as sct:
-		monitor = {"top":230, "left":215, "width":870, "height":580}
-		screenshot = sct.grab(monitor)
-		output = ""
-		if(left):
-			output = "left.pdf"
-		else:
-			output = "right.pdf"
-		img = Image.frombytes("RGB", screenshot.size, screenshot.bgra, "raw", "BGRX")
-		img.save(output, "PDF")
 	
 def get_data():
 	with open("export.csv", "r") as file:
 		reader = csv.reader(file, delimiter=";")
 		first_row = True
 		for row in reader:
+			print(row)
 			if first_row:
 				first_row = False
 			else:
@@ -207,8 +197,9 @@ def print_data():
 def read_csv():
 	ser = serial.Serial(UART_PORT, BAUDRATE, timeout=1, exclusive=True)
 	ser.reset_input_buffer()
+	print("opened serial port")
 	buffer = bytearray()
-    last_char_time = None
+	last_char_time = None
 	try:
 		while True:
 			if(last_char_time is not None and time.time() - last_char_time > 5):
@@ -219,6 +210,7 @@ def read_csv():
 				last_char_time = time.time()
 	finally:
 		ser.close()
+		print("closed serial port")
 	text = buffer.decode("utf-8", errors="ignore")
 	with open("export.csv", "w") as file:
 		file.write(text)
@@ -238,11 +230,12 @@ def make_floats(strings):
 		strings[i] = float(strings[i])
 
 if(__name__ == "__main__"):
+	print("entered main")
 	read_csv()
 	get_data()
 	if(left_examined):
 		main(True)
 	if(right_examined):
 		main(False)
-	print_data()
-	subprocess.run(["sudo", "reboot"])
+	# print_data()
+	# subprocess.run(["sudo", "reboot"])
