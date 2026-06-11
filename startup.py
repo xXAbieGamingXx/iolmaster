@@ -15,7 +15,7 @@ REPO = "xXAbieGamingXx/iolmaster"
 BRANCH = "master"
 COMMIT_API = "https://api.github.com/repos/{}/commits/{}".format(REPO, BRANCH)
 RAW_BASE = "https://raw.githubusercontent.com/{}/{}".format(REPO, BRANCH)
-UPDATE_FILES = ["main.py", "startup.py"]
+UPDATE_FILES = ["main.py", "startup.py", "provision_printer.sh"]
 
 SERIAL_PORT = "/dev/serial0"
 BAUDRATE = 115200
@@ -23,6 +23,10 @@ BAUDRATE = 115200
 HERE = os.path.dirname(os.path.abspath(__file__))
 HASH_FILE = os.path.join(HERE, ".commit_hash")
 REBOOT_DELAY = 5  # seconds after main.py finishes
+
+PRINTER_CONF = os.path.join(HERE, "printer.conf")
+PROVISION_SCRIPT = os.path.join(HERE, "provision_printer.sh")
+PROVISION_TIMEOUT = 180  # seconds; printer discovery polls for up to ~60s
 
 # RP2350 (e.g. Pico 2 in BOOTSEL mode) mounts as a USB mass-storage volume.
 RP_DRIVE_LABEL = "RP2350"
@@ -68,65 +72,6 @@ def download_file(name):
 	os.replace(tmp, dest)
 
 
-def send_serial(message):
-	"""Send a message over the UART. Failures are non-fatal."""
-	try:
-		ser = serial.Serial(SERIAL_PORT, BAUDRATE, timeout=1)
-		try:
-			ser.write(message.encode("utf-8"))
-			ser.flush()
-		finally:
-			ser.close()
-	except Exception as exc:
-		print("serial send failed: {}".format(exc))
-
-
-def find_drive_mountpoint(label):
-	"""Return the mountpoint of a mounted volume with the given label, or None."""
-	try:
-		out = subprocess.run(
-			["lsblk", "-o", "LABEL,MOUNTPOINT", "-nr"],
-			capture_output=True,
-			text=True,
-		).stdout
-	except Exception as exc:
-		print("lsblk failed: {}".format(exc))
-		return None
-	for line in out.splitlines():
-		parts = line.split(None, 1)
-		if len(parts) == 2 and parts[0] == label and parts[1]:
-			return parts[1]
-	return None
-
-
-def wait_for_drive_and_copy_uf2():
-	"""Wait for the RP2350 drive to mount, then move the UF2 file onto it."""
-	print("waiting for {} drive to mount...".format(RP_DRIVE_LABEL))
-	deadline = time.time() + RP_MOUNT_TIMEOUT
-	mountpoint = None
-	while time.time() < deadline:
-		mountpoint = find_drive_mountpoint(RP_DRIVE_LABEL)
-		if mountpoint:
-			break
-		time.sleep(RP_POLL_INTERVAL)
-
-	if not mountpoint:
-		print("{} drive did not mount within {}s".format(RP_DRIVE_LABEL, RP_MOUNT_TIMEOUT))
-		return
-
-	src = os.path.join(HERE, UF2_FILE)
-	if not os.path.exists(src):
-		print("{} not found, nothing to flash".format(src))
-		return
-
-	dest = os.path.join(mountpoint, UF2_FILE)
-	try:
-		shutil.move(src, dest)
-		print("moved {} to {}".format(UF2_FILE, mountpoint))
-	except Exception as exc:
-		print("failed to move {}: {}".format(UF2_FILE, exc))
-
-
 def check_and_update():
 	"""Compare remote vs local commit hash; update files if they differ."""
 	try:
@@ -157,9 +102,26 @@ def check_and_update():
 		return
 
 	save_local_hash(remote)
-	send_serial("UPDATE")
-	wait_for_drive_and_copy_uf2()
 	print("update complete")
+
+
+def ensure_printer():
+	"""If the printer hasn't been provisioned yet, try to set it up now.
+
+	Only runs while printer.conf is absent, so once provisioning succeeds it
+	is a no-op. A run that can't reach the printer leaves no config and is
+	retried on the next boot.
+	"""
+	if os.path.exists(PRINTER_CONF):
+		return
+	if not os.path.exists(PROVISION_SCRIPT):
+		print("printer not configured and {} is missing".format(PROVISION_SCRIPT))
+		return
+	print("printer.conf missing; provisioning printer")
+	try:
+		subprocess.run(["bash", PROVISION_SCRIPT], timeout=PROVISION_TIMEOUT)
+	except Exception as exc:
+		print("printer provisioning failed: {}".format(exc))
 
 
 def run_main():
@@ -195,5 +157,6 @@ def schedule_midnight_reboot():
 
 if __name__ == "__main__":
 	check_and_update()
+	ensure_printer()
 	schedule_midnight_reboot()
 	run_main()
