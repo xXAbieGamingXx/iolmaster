@@ -122,7 +122,7 @@ def paste_data(driver, left):
 	x1, y1, x2, y2 = screenshot_coords
 	box = tuple(int(v * dpr) for v in (x1, y1 - chrome_top, x2, y2 - chrome_top))
 	image.crop(box).save(output)
-	
+
 def get_data():
 	with open("export.csv", "r") as file:
 		reader = csv.reader(file, delimiter=";")
@@ -260,6 +260,6 @@ if(__name__ == "__main__"):
 		main(True)
 	if(right_examined):
 		main(False)
-	print_data()
-	subprocess.run(["rm", "-f", "left.png", "right.png"])
+	# print_data()
+	# subprocess.run(["rm", "-f", "left.png", "right.png"])
 	time.sleep(5) # let the prints finish
